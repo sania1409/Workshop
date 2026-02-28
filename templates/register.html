@@ -1,0 +1,44 @@
+{% extends "home.html" %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-card">
+
+        <h2>Register</h2>
+
+        <form method="POST">
+            <label>Email</label>
+            <input type="email" name="email" required>
+
+            <label>Password</label>
+            <input type="password" name="password" required>
+
+            <label>Full Name</label>
+            <input type="text" name="full_name">
+
+            <label>Contact</label>
+            <input type="text" name="contact">
+
+            <label>Role</label>
+            <select name="role" id="role" required>
+                <option value="other">Other</option>
+                <option value="technician">Technician</option>
+                <option value="complaint_locker">Complaint Locker</option>
+            </select>
+
+            <div id="skill-field">
+                <label>Skills</label>
+                <input type="text" name="skill">
+            </div>
+
+            <button type="submit" class="btn-primary">Register</button>
+        </form>
+
+        <p class="bottom-text">
+            Already have an account?
+            <a href="{{ url_for('auth_routes.login') }}">Login</a>
+        </p>
+
+    </div>
+</div>
+{% endblock %}

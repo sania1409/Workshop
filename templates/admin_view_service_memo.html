@@ -1,0 +1,34 @@
+{% extends "home.html" %}
+{% block content %}
+
+<h2>Admin Review: Service Memo #{{ memo.service_id }}</h2>
+
+<p><strong>Complain No:</strong> {{ memo.complain_no }}</p>
+<p><strong>User Name:</strong> {{ memo.user_name or "-" }}</p>
+<p><strong>Staff No:</strong> {{ memo.staff_no or "-" }}</p>
+<p><strong>Location:</strong> {{ memo.location or "-" }}</p>
+<p><strong>Device Type:</strong> {{ memo.product_name|title if memo.product_name else "-" }}</p>
+<p><strong>Model:</strong> {{ memo.model or "-" }}</p>
+<p><strong>Serial No:</strong> {{ memo.serial_no or "-" }}</p>
+<p><strong>User Details:</strong> {{ memo.user_details or "-" }}</p>
+<p><strong>Diagnosed:</strong> {{ "Yes" if memo.diagnosed else "No" }}</p>
+<p><strong>Diagnosis Notes:</strong> {{ memo.diagnosis_notes or "-" }}</p>
+<p><strong>Current Status:</strong> {{ memo.status or "-" }}</p>
+
+<hr>
+
+<h3>Admin Action</h3>
+<form method="POST">
+    <label>Action Notes (Work Done)</label><br>
+    <textarea name="admin_action_notes" rows="5" required>{{ memo.admin_action_notes or "" }}</textarea><br><br>
+    {% if not memo.task_performed %}
+    <button type="submit" class="btn">Mark Completed</button>
+    {% else %}
+    <p><strong>This memo is already completed.</strong></p>
+    {% endif %}
+</form>
+
+<br>
+<a href="{{ url_for('main_routes.admin_dashboard') }}">Back to Admin Dashboard</a>
+
+{% endblock %}

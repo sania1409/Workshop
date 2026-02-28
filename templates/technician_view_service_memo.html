@@ -1,0 +1,36 @@
+{% extends "home.html" %}
+{% block content %}
+
+<h2>Service Memo #{{ memo.service_id }}</h2>
+
+<p><strong>Complain No:</strong> {{ memo.complain_no }}</p>
+<p><strong>Location:</strong> {{ memo.location or "-" }}</p>
+<p><strong>Ext No:</strong> {{ memo.ext_no or "-" }}</p>
+<p><strong>User Name:</strong> {{ memo.user_name or "-" }}</p>
+<p><strong>Staff No:</strong> {{ memo.staff_no or "-" }}</p>
+<p><strong>IP Address:</strong> {{ memo.ip_address or "-" }}</p>
+<p><strong>Device Type:</strong> {{ memo.product_name|title if memo.product_name else "-" }}</p>
+<p><strong>Model:</strong> {{ memo.model or "-" }}</p>
+<p><strong>Serial No:</strong> {{ memo.serial_no or "-" }}</p>
+<p><strong>RAM:</strong> {{ memo.ram or "-" }}</p>
+<p><strong>HDD:</strong> {{ memo.hdd or "-" }}</p>
+<p><strong>L/N IATA:</strong> {{ memo.lniata or "-" }}</p>
+<p><strong>Date In:</strong> {{ memo.date_in or "-" }}</p>
+<p><strong>Status:</strong> {{ memo.status or "-" }}</p>
+<p><strong>User Details:</strong> {{ memo.user_details or "-" }}</p>
+<p><strong>Fault:</strong> {{ "Yes" if memo.fault else "No" }}</p>
+<p><strong>Data Backup:</strong> {{ "Yes" if memo.data_backup else "No" }}</p>
+
+<hr>
+
+<h3>Diagnosis</h3>
+<form method="POST">
+    <label>Diagnosis Notes</label><br>
+    <textarea name="diagnosis_notes" rows="5" required>{{ memo.diagnosis_notes or "" }}</textarea><br><br>
+    <button type="submit" class="btn">Update as Diagnosed</button>
+</form>
+
+<br>
+<a href="{{ url_for('main_routes.technician_dashboard') }}">Back to Technician Dashboard</a>
+
+{% endblock %}

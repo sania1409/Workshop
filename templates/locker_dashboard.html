@@ -1,0 +1,15 @@
+{% extends "home.html" %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-card">
+        <h2>Complaint Locker Dashboard</h2>
+        <p>Welcome, {{ session.get('username') }}.</p>
+        <br>
+        <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+            <a class="btn" href="{{ url_for('complaint_routes.create_service_memo') }}">New Service Memo</a>
+            <a class="btn" href="{{ url_for('complaint_routes.locker_service_memos') }}">View Service Memos</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

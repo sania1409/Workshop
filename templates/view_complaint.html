@@ -1,0 +1,38 @@
+{% extends "home.html" %}
+{% block content %}
+
+<h2>Complaint Details</h2>
+
+<p><strong>Title:</strong> {{ complaint.title }}</p>
+<p><strong>Device Type:</strong> {{ complaint.device_type|title if complaint.device_type else "-" }}</p>
+
+<p><strong>Description:</strong></p>
+<p>{{ complaint.description }}</p>
+
+<p><strong>Assigned Technician:</strong>
+    {% if complaint.technician %}
+        {{ complaint.technician.full_name or complaint.technician.username }}
+    {% else %}
+        Unassigned
+    {% endif %}
+</p>
+
+<p><strong>Status:</strong>
+    {% if complaint.status == "open" %}
+        <span style="color: orange;">Open</span>
+    {% elif complaint.status == "in_progress" %}
+        <span style="color: blue;">In Progress</span>
+    {% else %}
+        <span style="color: green;">Closed</span>
+    {% endif %}
+</p>
+
+<p><strong>Created At:</strong> {{ complaint.created_at }}</p>
+
+<br>
+
+<a href="{{ url_for('complaint_routes.locker_complaints') }}">
+    Back
+</a>
+
+{% endblock %}

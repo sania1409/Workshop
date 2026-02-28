@@ -1,0 +1,79 @@
+{% extends "home.html" %}
+
+{% block content %}
+<h2>Technician Dashboard</h2>
+<p>Welcome, {{ session.get('username') }}.</p>
+<p>
+    <strong>Availability:</strong>
+    {{ technician_profile.availability_status if technician_profile else "N/A" }}
+    |
+    <strong>Max Active Jobs:</strong>
+    {{ technician_profile.max_active_jobs if technician_profile else "N/A" }}
+</p>
+
+<h3>Active Assigned Service Memos</h3>
+<table border="1" width="100%" cellpadding="8">
+    <tr>
+        <th>Service ID</th>
+        <th>Complain No</th>
+        <th>Device</th>
+        <th>Status</th>
+        <th>Last Updated</th>
+        <th>Action</th>
+    </tr>
+    {% for memo in active_service_memos %}
+    <tr>
+        <td>
+            <a href="{{ url_for('complaint_routes.technician_view_service_memo', service_id=memo.service_id) }}">
+                {{ memo.service_id }}
+            </a>
+        </td>
+        <td>{{ memo.complain_no }}</td>
+        <td>{{ memo.product_name|title if memo.product_name else "-" }}</td>
+        <td>{{ memo.status or "-" }}</td>
+        <td>{{ memo.last_updated }}</td>
+        <td>
+            <a href="{{ url_for('complaint_routes.technician_view_service_memo', service_id=memo.service_id) }}">View Details</a>
+        </td>
+    </tr>
+    {% else %}
+    <tr>
+        <td colspan="6">No active assigned service memos.</td>
+    </tr>
+    {% endfor %}
+</table>
+
+<br>
+
+<h3>Completed Service Memos</h3>
+<table border="1" width="100%" cellpadding="8">
+    <tr>
+        <th>Service ID</th>
+        <th>Complain No</th>
+        <th>Device</th>
+        <th>Status</th>
+        <th>Last Updated</th>
+        <th>Action</th>
+    </tr>
+    {% for memo in completed_service_memos %}
+    <tr>
+        <td>
+            <a href="{{ url_for('complaint_routes.technician_view_service_memo', service_id=memo.service_id) }}">
+                {{ memo.service_id }}
+            </a>
+        </td>
+        <td>{{ memo.complain_no }}</td>
+        <td>{{ memo.product_name|title if memo.product_name else "-" }}</td>
+        <td>{{ memo.status or "-" }}</td>
+        <td>{{ memo.last_updated }}</td>
+        <td>
+            <a href="{{ url_for('complaint_routes.technician_view_service_memo', service_id=memo.service_id) }}">View Details</a>
+        </td>
+    </tr>
+    {% else %}
+    <tr>
+        <td colspan="6">No completed service memos.</td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}

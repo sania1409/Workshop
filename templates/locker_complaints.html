@@ -1,0 +1,54 @@
+{% extends "home.html" %}
+{% block content %}
+
+<h2>My Complaints</h2>
+
+<a href="{{ url_for('complaint_routes.create_complaint') }}" class="btn">
+    + New Complaint
+</a>
+
+<br><br>
+
+<table border="1" width="100%" cellpadding="8">
+    <tr>
+        <th>ID</th>
+        <th>Title</th>
+        <th>Device</th>
+        <th>Assigned To</th>
+        <th>Status</th>
+        <th>Created At</th>
+        <th>Action</th>
+    </tr>
+
+    {% for complaint in complaints %}
+    <tr>
+        <td>{{ complaint.id }}</td>
+        <td>{{ complaint.title }}</td>
+        <td>{{ complaint.device_type|title if complaint.device_type else "-" }}</td>
+        <td>
+            {% if complaint.technician %}
+                {{ complaint.technician.full_name or complaint.technician.username }}
+            {% else %}
+                Unassigned
+            {% endif %}
+        </td>
+        <td>
+            {% if complaint.status == "open" %}
+                <span style="color: orange;">Open</span>
+            {% elif complaint.status == "in_progress" %}
+                <span style="color: blue;">In Progress</span>
+            {% else %}
+                <span style="color: green;">Closed</span>
+            {% endif %}
+        </td>
+        <td>{{ complaint.created_at }}</td>
+        <td>
+            <a href="{{ url_for('complaint_routes.view_complaint', id=complaint.id) }}">
+                View
+            </a>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+{% endblock %}

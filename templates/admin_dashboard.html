@@ -1,0 +1,64 @@
+{% extends "home.html" %}
+
+{% block content %}
+<h2>Admin Dashboard</h2>
+<p>Welcome, {{ session.get('username') }}.</p>
+
+<h3>Diagnosed Service Memos (Pending Admin Action)</h3>
+<table border="1" width="100%" cellpadding="8">
+    <tr>
+        <th>Service ID</th>
+        <th>Complain No</th>
+        <th>Device</th>
+        <th>Assigned Technician</th>
+        <th>Status</th>
+        <th>Action</th>
+    </tr>
+    {% for memo in pending_admin_memos %}
+    <tr>
+        <td>{{ memo.service_id }}</td>
+        <td>{{ memo.complain_no }}</td>
+        <td>{{ memo.product_name|title if memo.product_name else "-" }}</td>
+        <td>{{ memo.assigned_user.full_name or memo.assigned_user.username if memo.assigned_user else "Unassigned" }}</td>
+        <td>{{ memo.status or "-" }}</td>
+        <td>
+            <a href="{{ url_for('complaint_routes.admin_view_service_memo', service_id=memo.service_id) }}">Review</a>
+        </td>
+    </tr>
+    {% else %}
+    <tr>
+        <td colspan="6">No diagnosed memos pending admin action.</td>
+    </tr>
+    {% endfor %}
+</table>
+
+<br>
+
+<h3>Completed Service Memos</h3>
+<table border="1" width="100%" cellpadding="8">
+    <tr>
+        <th>Service ID</th>
+        <th>Complain No</th>
+        <th>Device</th>
+        <th>Status</th>
+        <th>Date Out</th>
+        <th>Action</th>
+    </tr>
+    {% for memo in completed_admin_memos %}
+    <tr>
+        <td>{{ memo.service_id }}</td>
+        <td>{{ memo.complain_no }}</td>
+        <td>{{ memo.product_name|title if memo.product_name else "-" }}</td>
+        <td>{{ memo.status or "-" }}</td>
+        <td>{{ memo.date_out or "-" }}</td>
+        <td>
+            <a href="{{ url_for('complaint_routes.admin_view_service_memo', service_id=memo.service_id) }}">View</a>
+        </td>
+    </tr>
+    {% else %}
+    <tr>
+        <td colspan="6">No completed service memos yet.</td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}
