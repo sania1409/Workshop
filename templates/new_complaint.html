@@ -1,31 +1,30 @@
 {% extends "home.html" %}
 {% block content %}
 
-<h2>Create New Complaint</h2>
+<section class="panel">
+    <h2>Create New Complaint</h2>
+    <p class="subtext">Raise an IT complaint for airport operations devices.</p>
 
-<form method="POST">
+    <form method="POST">
+        <label>Title</label>
+        <input type="text" name="title" required>
 
-    <label>Title:</label><br>
-    <input type="text" name="title" required><br><br>
+        <label>Device Type</label>
+        <select name="device_type" required>
+            <option value="">Select device type</option>
+            {% for dtype in device_types %}
+                <option value="{{ dtype }}">{{ dtype|title }}</option>
+            {% endfor %}
+        </select>
 
-    <label>Device Type:</label><br>
-    <select name="device_type" required>
-        <option value="">Select device type</option>
-        {% for dtype in device_types %}
-            <option value="{{ dtype }}">{{ dtype|title }}</option>
-        {% endfor %}
-    </select><br><br>
+        <label>Description</label>
+        <textarea name="description" rows="5" required></textarea>
 
-    <label>Description:</label><br>
-    <textarea name="description" rows="5" required></textarea><br><br>
-
-    <button type="submit" class="btn">Submit Complaint</button>
-
-</form>
-
-<br>
-<a href="{{ url_for('complaint_routes.locker_complaints') }}">
-    Back to Complaints
-</a>
+        <div class="actions">
+            <button type="submit" class="btn"><i class="ri-send-plane-2-line"></i>Submit Complaint</button>
+            <a href="{{ url_for('complaint_routes.locker_complaints') }}" class="btn ghost"><i class="ri-arrow-left-line"></i>Back to Complaints</a>
+        </div>
+    </form>
+</section>
 
 {% endblock %}

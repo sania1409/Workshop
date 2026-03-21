@@ -1,0 +1,250 @@
+{% extends "home.html" %}
+
+{% block content %}
+<section class="panel">
+    <div class="manage-header">
+        <div>
+            <h2>User Management</h2>
+            <p class="subtext">Add or remove complaint lockers, technicians, and devices.</p>
+        </div>
+        <a href="{{ url_for('main_routes.admin_dashboard') }}" class="close-icon" title="Close">&times;</a>
+    </div>
+
+    <details class="panel-collapse" open>
+        <summary><i class="ri-user-settings-line"></i> Manage Complaint Lockers</summary>
+        <form method="POST" action="{{ url_for('main_routes.admin_add_complaint_locker') }}">
+            <div class="row">
+                <div class="col">
+                    <label>Email</label>
+                    <input type="email" name="email" placeholder="Example: locker@skybridge.com" required>
+                </div>
+                <div class="col">
+                    <label>Password</label>
+                    <input type="password" name="password" minlength="7" pattern="(?=.*[0-9\\W_]).{7,}" title="Minimum 7 characters with at least one number or special character." placeholder="Example: Locker@123" required>
+                </div>
+                <div class="col">
+                    <label>Full Name</label>
+                    <input type="text" name="full_name" maxlength="150" placeholder="Example: Ahmed Khan">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <label>Staff No</label>
+                    <input type="text" name="staff_no" maxlength="6" pattern="[A-Za-z][0-9]{5}" title="Format: 1 letter + 5 digits." placeholder="Example: A12345">
+                </div>
+                <div class="col">
+                    <label>Contact</label>
+                    <input type="text" name="contact" maxlength="50" placeholder="Example: 03001234567">
+                </div>
+                <div class="col">
+                    <label>Location</label>
+                    <select name="location">
+                        <option value="">Select location</option>
+                        {% for loc in locker_location_options %}
+                        <option value="{{ loc }}">{{ loc.replace("_", " ")|title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <label>Department</label>
+                    <input type="text" name="department" maxlength="100" placeholder="Example: IT Operations">
+                </div>
+                <div class="col">
+                    <label>Designation</label>
+                    <input type="text" name="designation" maxlength="100" placeholder="Example: Service Desk Officer">
+                </div>
+            </div>
+            <div class="actions">
+                <button type="submit" class="btn"><i class="ri-user-add-line"></i>Add Complaint Locker</button>
+            </div>
+        </form>
+        <div class="table-wrap">
+            <table>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Department</th>
+                    <th>Action</th>
+                </tr>
+                {% for user in complaint_lockers %}
+                <tr>
+                    <td>{{ user.full_name or user.username }}</td>
+                    <td>{{ user.auth.email if user.auth else "-" }}</td>
+                    <td>{{ user.department or "-" }}</td>
+                    <td>
+                        <form method="POST" action="{{ url_for('main_routes.admin_delete_complaint_locker', user_id=user.id) }}" class="inline-form">
+                            <button type="submit">Delete Complaint Locker</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4">No complaint lockers available.</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </details>
+
+    <details class="panel-collapse">
+        <summary><i class="ri-tools-line"></i> Manage Technicians</summary>
+        <form method="POST" action="{{ url_for('main_routes.admin_add_technician') }}">
+            <div class="row">
+                <div class="col">
+                    <label>Email</label>
+                    <input type="email" name="email" placeholder="Example: tech@skybridge.com" required>
+                </div>
+                <div class="col">
+                    <label>Password</label>
+                    <input type="password" name="password" minlength="7" pattern="(?=.*[0-9\\W_]).{7,}" title="Minimum 7 characters with at least one number or special character." placeholder="Example: Tech@123" required>
+                </div>
+                <div class="col">
+                    <label>Full Name</label>
+                    <input type="text" name="full_name" maxlength="150" placeholder="Example: Bilal Shaikh">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <label>Skills</label>
+                    <select name="skills" required>
+                        <option value="">Select skill</option>
+                        {% for skill in tech_skill_options %}
+                        <option value="{{ skill }}">{{ skill|title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col">
+                    <label>Staff No</label>
+                    <input type="text" name="staff_no" maxlength="6" pattern="[A-Za-z][0-9]{5}" title="Format: 1 letter + 5 digits." placeholder="Example: T12345">
+                </div>
+                <div class="col">
+                    <label>Contact</label>
+                    <input type="text" name="contact" maxlength="50" placeholder="Example: 03111234567">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <label>Department</label>
+                    <input type="text" name="department" maxlength="100" placeholder="Example: Hardware Workshop">
+                </div>
+                <div class="col">
+                    <label>Designation</label>
+                    <input type="text" name="designation" maxlength="100" placeholder="Example: IT Technician">
+                </div>
+            </div>
+            <div class="actions">
+                <button type="submit" class="btn"><i class="ri-user-add-line"></i>Add Technician</button>
+            </div>
+        </form>
+        <div class="table-wrap">
+            <table>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Skills</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+                {% for user in technicians %}
+                <tr>
+                    <td>{{ user.full_name or user.username }}</td>
+                    <td>{{ user.auth.email if user.auth else "-" }}</td>
+                    <td>{{ user.technician_profile.skills if user.technician_profile else "-" }}</td>
+                    <td>{{ user.technician_profile.availability_status if user.technician_profile else "-" }}</td>
+                    <td>
+                        <form method="POST" action="{{ url_for('main_routes.admin_delete_technician', user_id=user.id) }}" class="inline-form">
+                            <button type="submit">Delete Technician</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5">No technicians available.</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </details>
+
+    <details class="panel-collapse">
+        <summary><i class="ri-cpu-line"></i> Manage Devices</summary>
+        <form method="POST" action="{{ url_for('main_routes.admin_add_device') }}">
+            <div class="row">
+                <div class="col">
+                    <label>Device Name</label>
+                    <input type="text" name="device_name" maxlength="50" pattern="[A-Za-z0-9_ -]{2,50}" placeholder="Example: Tablet" required>
+                </div>
+            </div>
+            <div class="actions">
+                <button type="submit" class="btn"><i class="ri-add-circle-line"></i>Add Device</button>
+            </div>
+        </form>
+        <div class="table-wrap">
+            <table>
+                <tr>
+                    <th>ID</th>
+                    <th>Device</th>
+                    <th>Action</th>
+                </tr>
+                {% for device in devices %}
+                <tr>
+                    <td>{{ device.id }}</td>
+                    <td>{{ device.name|title }}</td>
+                    <td>
+                        <form method="POST" action="{{ url_for('main_routes.admin_delete_device', device_id=device.id) }}" class="inline-form">
+                            <button type="submit">Remove Device</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3">No devices configured.</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </details>
+
+    <details class="panel-collapse">
+        <summary><i class="ri-map-pin-line"></i> Manage Locations</summary>
+        <form method="POST" action="{{ url_for('main_routes.admin_add_location') }}">
+            <div class="row">
+                <div class="col">
+                    <label>Location Name</label>
+                    <input type="text" name="location_name" maxlength="50" pattern="[A-Za-z0-9_ -]{2,50}" placeholder="Example: Regional Office" required>
+                </div>
+            </div>
+            <div class="actions">
+                <button type="submit" class="btn"><i class="ri-add-circle-line"></i>Add Location</button>
+            </div>
+        </form>
+        <div class="table-wrap">
+            <table>
+                <tr>
+                    <th>ID</th>
+                    <th>Location</th>
+                    <th>Action</th>
+                </tr>
+                {% for location in locations %}
+                <tr>
+                    <td>{{ location.id }}</td>
+                    <td>{{ location.name.replace("_", " ")|title }}</td>
+                    <td>
+                        <form method="POST" action="{{ url_for('main_routes.admin_delete_location', location_id=location.id) }}" class="inline-form">
+                            <button type="submit">Remove Location</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3">No locations configured.</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </details>
+</section>
+{% endblock %}
+

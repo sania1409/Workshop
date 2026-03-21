@@ -1,40 +1,53 @@
 {% extends "home.html" %}
 {% block content %}
 
-<h2>My Service Memos</h2>
+<section class="panel">
+    <h2>My Service Memos</h2>
+    <p class="subtext">Track submitted maintenance memos and technician assignment status.</p>
+    <div class="actions">
+        <a href="{{ url_for('complaint_routes.create_service_memo') }}" class="btn"><i class="ri-file-add-line"></i>New Service Memo</a>
+        <a href="{{ url_for('main_routes.locker_dashboard') }}" class="btn ghost"><i class="ri-arrow-left-line"></i>Service Desk Dashboard</a>
+    </div>
+</section>
 
-<a href="{{ url_for('complaint_routes.create_service_memo') }}" class="btn">
-    + New Service Memo
-</a>
-<a href="{{ url_for('main_routes.locker_dashboard') }}" class="btn">
-    Locker Dashboard
-</a>
-
-<br><br>
-
-<table border="1" width="100%" cellpadding="8">
-    <tr>
-        <th>Service ID</th>
-        <th>Complain No</th>
-        <th>Product</th>
-        <th>Assigned To</th>
-        <th>Status</th>
-        <th>Diagnosed</th>
-        <th>Date In</th>
-        <th>Date Out</th>
-    </tr>
-    {% for memo in memos %}
-    <tr>
-        <td>{{ memo.service_id }}</td>
-        <td>{{ memo.complain_no }}</td>
-        <td>{{ memo.product_name }}</td>
-        <td>{{ memo.assigned_user.full_name or memo.assigned_user.username if memo.assigned_user else "Unassigned" }}</td>
-        <td>{{ memo.status }}</td>
-        <td>{{ "Yes" if memo.diagnosed else "No" }}</td>
-        <td>{{ memo.date_in }}</td>
-        <td>{{ memo.date_out }}</td>
-    </tr>
-    {% endfor %}
-</table>
+<section class="panel">
+    <div class="table-wrap">
+        <table>
+            <tr>
+                <th>Service ID</th>
+                <th>Complain No</th>
+                <th>Product</th>
+                <th>Assigned To</th>
+                <th>Status</th>
+                <th>Diagnosed</th>
+                <th>Date In</th>
+                <th>Date Out</th>
+                <th>Action</th>
+            </tr>
+            {% for memo in memos %}
+            <tr>
+                <td>{{ memo.service_id }}</td>
+                <td>{{ memo.complain_no }}</td>
+                <td>{{ memo.product_name }}</td>
+                <td>{{ memo.assigned_user.full_name or memo.assigned_user.username if memo.assigned_user else "Unassigned" }}</td>
+                <td><span class="status-{{ memo.status or 'pending' }}">{{ memo.status or "-" }}</span></td>
+                <td>{{ "Yes" if memo.diagnosed else "No" }}</td>
+                <td>{{ memo.date_in }}</td>
+                <td>{{ memo.date_out }}</td>
+                <td>
+                    <a href="{{ url_for('complaint_routes.locker_view_service_memo', service_id=memo.service_id) }}">Review</a>
+                    {% if memo.task_performed %}
+                    | <a href="{{ url_for('complaint_routes.locker_view_service_memo', service_id=memo.service_id) }}#print">Print</a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="9">No service memos submitted yet.</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</section>
 
 {% endblock %}

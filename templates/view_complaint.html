@@ -1,38 +1,45 @@
 {% extends "home.html" %}
 {% block content %}
 
-<h2>Complaint Details</h2>
+<section class="panel printable-complaint" id="complaint-print-area">
+    <h2>Complaint Details</h2>
+    <div class="detail-grid">
+        <div class="detail-item"><strong>Complaint ID</strong>{{ complaint.id }}</div>
+        <div class="detail-item"><strong>Title</strong>{{ complaint.title }}</div>
+        <div class="detail-item"><strong>Device Type</strong>{{ complaint.device_type|title if complaint.device_type else "-" }}</div>
+        <div class="detail-item">
+            <strong>Status</strong>
+            <span class="status-{{ complaint.status or 'open' }}">{{ complaint.status }}</span>
+        </div>
+        <div class="detail-item"><strong>Created At</strong>{{ complaint.created_at }}</div>
+        <div class="detail-item"><strong>Assigned At</strong>{{ complaint.assigned_at or "-" }}</div>
+    </div>
 
-<p><strong>Title:</strong> {{ complaint.title }}</p>
-<p><strong>Device Type:</strong> {{ complaint.device_type|title if complaint.device_type else "-" }}</p>
+    <hr>
+    <h3>Device & Technician Info</h3>
+    <div class="detail-grid">
+        <div class="detail-item"><strong>Device</strong>{{ complaint.device_type|title if complaint.device_type else "-" }}</div>
+        <div class="detail-item">
+            <strong>Assigned Technician</strong>
+            {% if complaint.technician %}
+                {{ complaint.technician.full_name or complaint.technician.username }}
+            {% else %}
+                Unassigned
+            {% endif %}
+        </div>
+        <div class="detail-item"><strong>Technician Staff No</strong>{{ complaint.technician.staff_no if complaint.technician and complaint.technician.staff_no else "-" }}</div>
+        <div class="detail-item"><strong>Technician Department</strong>{{ complaint.technician.department if complaint.technician and complaint.technician.department else "-" }}</div>
+        <div class="detail-item"><strong>Technician Contact</strong>{{ complaint.technician.contact if complaint.technician and complaint.technician.contact else "-" }}</div>
+        <div class="detail-item"><strong>Technician Designation</strong>{{ complaint.technician.designation if complaint.technician and complaint.technician.designation else "-" }}</div>
+    </div>
 
-<p><strong>Description:</strong></p>
-<p>{{ complaint.description }}</p>
+    <hr>
+    <p><strong>Description:</strong> {{ complaint.description }}</p>
 
-<p><strong>Assigned Technician:</strong>
-    {% if complaint.technician %}
-        {{ complaint.technician.full_name or complaint.technician.username }}
-    {% else %}
-        Unassigned
-    {% endif %}
-</p>
-
-<p><strong>Status:</strong>
-    {% if complaint.status == "open" %}
-        <span style="color: orange;">Open</span>
-    {% elif complaint.status == "in_progress" %}
-        <span style="color: blue;">In Progress</span>
-    {% else %}
-        <span style="color: green;">Closed</span>
-    {% endif %}
-</p>
-
-<p><strong>Created At:</strong> {{ complaint.created_at }}</p>
-
-<br>
-
-<a href="{{ url_for('complaint_routes.locker_complaints') }}">
-    Back
-</a>
+    <div class="actions no-print">
+        <a href="{{ url_for('complaint_routes.locker_complaints') }}" class="btn ghost"><i class="ri-arrow-left-line"></i>Back</a>
+        <button type="button" class="btn" onclick="window.print()"><i class="ri-printer-line"></i>Print</button>
+    </div>
+</section>
 
 {% endblock %}

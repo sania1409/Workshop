@@ -1,15 +1,20 @@
 {% extends "home.html" %}
 
 {% block content %}
-<div class="auth-wrapper">
-    <div class="auth-card">
-        <h2>Complaint Locker Dashboard</h2>
-        <p>Welcome, {{ session.get('username') }}.</p>
-        <br>
-        <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
-            <a class="btn" href="{{ url_for('complaint_routes.create_service_memo') }}">New Service Memo</a>
-            <a class="btn" href="{{ url_for('complaint_routes.locker_service_memos') }}">View Service Memos</a>
+<section class="panel">
+    <div>
+        <div>
+            <p class="subtext">PIA Service Desk</p>
+            <h2>Service Desk Dashboard</h2>
+            <p class="subtext">Welcome, {{ session.get('username') }}. Log issues, create service memos, and monitor technical handling.</p>
         </div>
+        <span class="chip">Active Workspace</span>
     </div>
-</div>
+
+    <div class="actions">
+        <a class="btn" href="{{ url_for('complaint_routes.create_service_memo') }}"><i class="ri-file-add-line"></i>New Service Memo</a>
+        <a class="btn" href="{{ url_for('complaint_routes.locker_service_memos') }}"><i class="ri-folder-open-line"></i>View Service Memos</a>
+        <a class="btn ghost" href="{{ url_for('complaint_routes.locker_complaints') }}"><i class="ri-search-eye-line"></i>Review Complaints</a>
+    </div>
+</section>
 {% endblock %}

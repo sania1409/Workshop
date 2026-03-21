@@ -2,20 +2,60 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Workshop App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PIA IT Service Desk</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Roboto:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.6.0/fonts/remixicon.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div class="container">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert">{{ message }}</div>
-                {% endfor %}
+    <div class="page-bg"></div>
+    <header class="topbar">
+        <a class="brand" href="{{ url_for('main_routes.home') }}">
+            <span class="brand-mark">PIA</span>
+            <span>
+                <strong>Pakistan International Airlines</strong>
+                <small>Technical Operations</small>
+            </span>
+        </a>
+        <nav class="topnav">
+            {% if session.get('user_id') %}
+                {% if session.get('role') == 'admin' %}
+                    <a href="{{ url_for('main_routes.admin_dashboard') }}"><i class="ri-shield-star-line"></i>Admin</a>
+                {% elif session.get('role') == 'technician' %}
+                    <a href="{{ url_for('main_routes.technician_dashboard') }}"><i class="ri-tools-line"></i>Technician</a>
+                {% elif session.get('role') == 'complaint_locker' %}
+                    <a href="{{ url_for('main_routes.locker_dashboard') }}"><i class="ri-customer-service-2-line"></i>Service Desk</a>
+                {% else %}
+                    <a href="{{ url_for('main_routes.dashboard') }}"><i class="ri-dashboard-line"></i>Dashboard</a>
+                {% endif %}
+                <a href="{{ url_for('auth_routes.logout') }}"><i class="ri-logout-box-r-line"></i>Logout</a>
+            {% else %}
+                <a href="{{ url_for('auth_routes.login') }}"><i class="ri-login-box-line"></i>Login</a>
             {% endif %}
+        </nav>
+    </header>
+    <main class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <section class="flash-stack">
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        </section>
+        {% endif %}
         {% endwith %}
-
         {% block content %}{% endblock %}
+    </main>
+    <div class="ambient-glow"></div>
+    <div class="runway-line"></div>
+    <div class="runway-line secondary"></div>
+    <div class="runway-line tertiary"></div>
+    <div class="overlay-noise"></div>
+    <div class="layout-footer">
+        <p>PIA IT Service Desk</p>
     </div>
 
     <script src="{{ url_for('static', filename='script.js') }}"></script>

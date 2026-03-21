@@ -1,12 +1,14 @@
 from datetime import datetime
+import ipaddress
 import re
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, abort
 from sqlalchemy import or_
 from extensions import db
-from models import Complaint, ComplaintLockerProfile, ServiceMemo, TechnicianProfile, User
+from models import Complaint, ComplaintLockerProfile, DeviceType, HardwareWorkshop, Location, ServiceMemo, TechnicianProfile, User
 
 complaint_routes = Blueprint("complaint_routes", __name__)
-DEVICE_TYPES = ["laptop", "desktop", "printer", "scanner", "network", "other"]
+DEFAULT_DEVICE_TYPES = ["laptop", "desktop", "printer", "scanner", "network", "other"]
+DEFAULT_LOCATIONS = ["head_office", "station", "workshop", "other"]
 
 
 def _get_or_create_locker_profile(user_id: int):
@@ -29,6 +31,35 @@ def _to_date(value: str):
         return None
 
 
+def _get_device_types():
+    names = [d.name for d in DeviceType.query.order_by(DeviceType.name.asc()).all() if d.name]
+    if names:
+        return names
+    return DEFAULT_DEVICE_TYPES
+
+
+def _get_locations():
+    names = [l.name for l in Location.query.order_by(Location.name.asc()).all() if l.name]
+    if names:
+        return names
+    return DEFAULT_LOCATIONS
+
+
+def _next_complain_no():
+    latest = ServiceMemo.query.order_by(ServiceMemo.service_id.desc()).first()
+    if not latest or not latest.complain_no:
+        return "CMP00001"
+
+    text = latest.complain_no.strip().upper()
+    match = re.search(r"(\d+)$", text)
+    if not match:
+        return "CMP00001"
+
+    digits = match.group(1)
+    prefix = text[: -len(digits)] or "CMP"
+    return f"{prefix}{str(int(digits) + 1).zfill(len(digits))}"
+
+
 def _skill_tokens(skills_text: str):
     if not skills_text:
         return []
@@ -43,11 +74,17 @@ def _normalize_words(text: str):
 def _technician_active_load(user_id: int):
     complaint_load = Complaint.query.filter(
         Complaint.technician_id == user_id,
-        Complaint.status.in_(["in_progress"]),
+        or_(
+            Complaint.status.in_(["open", "in_progress"]),
+            Complaint.status.is_(None),
+        ),
     ).count()
     memo_load = ServiceMemo.query.filter(
         ServiceMemo.assigned_to == user_id,
-        ServiceMemo.task_performed.is_(False),
+        or_(
+            ServiceMemo.task_performed.is_(False),
+            ServiceMemo.task_performed.is_(None),
+        ),
     ).count()
     return complaint_load + memo_load
 
@@ -58,12 +95,11 @@ def _pick_technician_for_task(device_type: str, task_text: str):
         TechnicianProfile.query
         .join(User, TechnicianProfile.user_id == User.id)
         .filter(User.role == "technician")
+        .order_by(User.id.asc())
         .all()
     )
 
-    best_user_id = None
-    best_score = 0
-    best_load = None
+    best_candidate = None  # (score, active_load, user_id)
     device_aliases = {
         "laptop": {"laptop", "notebook"},
         "desktop": {"desktop", "computer", "pc"},
@@ -84,13 +120,8 @@ def _pick_technician_for_task(device_type: str, task_text: str):
             continue
 
         active_load = _technician_active_load(profile.user_id)
-        max_jobs = profile.max_active_jobs or 1
-
-        # Determine free/busy from live load (prevents stale status blocking assignment).
-        if active_load >= max_jobs:
-            profile.availability_status = "busy"
-            continue
-        profile.availability_status = "available"
+        # Max jobs removed from assignment behavior: available means no active jobs.
+        profile.availability_status = "busy" if active_load > 0 else "available"
 
         score = 0
         # Strong preference for explicit device match from dropdown.
@@ -112,12 +143,23 @@ def _pick_technician_for_task(device_type: str, task_text: str):
         if score <= 0:
             continue
 
-        if score > best_score or (score == best_score and (best_load is None or active_load < best_load)):
-            best_score = score
-            best_load = active_load
-            best_user_id = profile.user_id
+        candidate = (score, active_load, profile.user_id)
 
-    return best_user_id
+        if (
+            best_candidate is None
+            or candidate[0] > best_candidate[0]
+            or (candidate[0] == best_candidate[0] and candidate[1] < best_candidate[1])
+            or (
+                candidate[0] == best_candidate[0]
+                and candidate[1] == best_candidate[1]
+                and candidate[2] < best_candidate[2]
+            )
+        ):
+            best_candidate = candidate
+
+    if best_candidate is not None:
+        return best_candidate[2]
+    return None
 
 
 def _pick_technician_for_complaint(title: str, description: str, device_type: str):
@@ -130,9 +172,31 @@ def _refresh_technician_availability(user_id: int):
     if not profile or profile.availability_status == "offline":
         return
 
-    max_jobs = profile.max_active_jobs or 1
     active_load = _technician_active_load(user_id)
-    profile.availability_status = "busy" if active_load >= max_jobs else "available"
+    profile.availability_status = "busy" if active_load > 0 else "available"
+
+
+def _locker_selectable_technicians():
+    tech_profiles = (
+        TechnicianProfile.query
+        .join(User, TechnicianProfile.user_id == User.id)
+        .filter(User.role == "technician")
+        .order_by(User.full_name.asc(), User.username.asc())
+        .all()
+    )
+    result = []
+    for profile in tech_profiles:
+        user = profile.user
+        if not user:
+            continue
+        display_name = user.full_name or user.username
+        skills = (profile.skills or "").strip() or "No skills listed"
+        result.append({
+            "id": user.id,
+            "name": display_name,
+            "skills": skills,
+        })
+    return result
 
 
 # -----------------------------------
@@ -169,9 +233,10 @@ def create_complaint():
         device_type = request.form.get("device_type", "").strip().lower()
         description = request.form.get("description")
 
-        if not title or not description or device_type not in DEVICE_TYPES:
+        device_types = _get_device_types()
+        if not title or not description or device_type not in device_types:
             flash("Title, device type, and description are required.", "danger")
-            return render_template("new_complaint.html", device_types=DEVICE_TYPES)
+            return render_template("new_complaint.html", device_types=device_types)
 
         technician_id = _pick_technician_for_complaint(title, description, device_type)
         complaint = Complaint(
@@ -197,7 +262,7 @@ def create_complaint():
             flash("Complaint created. No technician skill match found yet.", "warning")
         return redirect(url_for("complaint_routes.locker_complaints"))
 
-    return render_template("new_complaint.html", device_types=DEVICE_TYPES)
+    return render_template("new_complaint.html", device_types=_get_device_types())
 
 
 # -----------------------------------
@@ -241,6 +306,22 @@ def locker_service_memos():
     return render_template("locker_service_memos.html", memos=memos)
 
 
+@complaint_routes.route("/locker/service-memos/<int:service_id>")
+def locker_view_service_memo(service_id):
+    if "user_id" not in session or session.get("role") != "complaint_locker":
+        return redirect(url_for("auth_routes.login"))
+
+    memo = ServiceMemo.query.get_or_404(service_id)
+    is_owner = memo.created_by_user_id == session["user_id"]
+    is_legacy_owner = (
+        memo.created_by_user_id is None and memo.user_name == session.get("username")
+    )
+    if not (is_owner or is_legacy_owner):
+        abort(403)
+
+    return render_template("locker_view_service_memo.html", memo=memo)
+
+
 # -----------------------------------
 # Create Service Memo (Locker Input)
 # -----------------------------------
@@ -250,38 +331,159 @@ def create_service_memo():
         return redirect(url_for("auth_routes.login"))
 
     if request.method == "POST":
-        complain_no = request.form.get("complain_no", "").strip()
-        if not complain_no:
-            flash("Complain number is required.", "danger")
-            return render_template("new_service_memo.html")
-
         device_type = request.form.get("product_name", "").strip().lower()
-        memo_text = " ".join([
-            request.form.get("model", "").strip(),
-            request.form.get("user_details", "").strip(),
-            request.form.get("status", "").strip(),
-        ])
-        technician_id = _pick_technician_for_task(device_type=device_type, task_text=memo_text)
+        location = request.form.get("location", "").strip().lower()
+        technician_id_raw = request.form.get("technician_id", "").strip()
+        staff_no = request.form.get("staff_no", "").strip().upper()
+        ext_no = request.form.get("ext_no", "").strip()
+        ip_address = request.form.get("ip_address", "").strip()
+        model = request.form.get("model", "").strip()
+        serial_no = request.form.get("serial_no", "").strip()
+        ram = request.form.get("ram", "").strip()
+        hdd = request.form.get("hdd", "").strip()
+        user_details = request.form.get("user_details", "").strip()
+        date_in_raw = request.form.get("date_in", "").strip()
+        date_in = _to_date(date_in_raw)
+        if not date_in_raw:
+            date_in = datetime.utcnow().date()
+
+        technicians = _locker_selectable_technicians()
+        valid_technician_ids = {str(t["id"]) for t in technicians}
+        if (
+            device_type not in _get_device_types()
+            or location not in _get_locations()
+            or technician_id_raw not in valid_technician_ids
+        ):
+            flash("Location, device type, and technician are required.", "danger")
+            return render_template(
+                "new_service_memo.html",
+                technicians=technicians,
+                location_options=_get_locations(),
+                device_types=_get_device_types(),
+                auto_complain_no=_next_complain_no(),
+                today_date=datetime.utcnow().date().isoformat(),
+            )
+
+        if not re.fullmatch(r"[A-Za-z][0-9]{5}", staff_no):
+            flash("Staff number must be 1 letter followed by 5 digits (example: A12345).", "danger")
+            return render_template(
+                "new_service_memo.html",
+                technicians=technicians,
+                location_options=_get_locations(),
+                device_types=_get_device_types(),
+                auto_complain_no=_next_complain_no(),
+                today_date=datetime.utcnow().date().isoformat(),
+            )
+
+        if ext_no and not re.fullmatch(r"[0-9]{1,20}", ext_no):
+            flash("Ext number must contain digits only.", "danger")
+            return render_template(
+                "new_service_memo.html",
+                technicians=technicians,
+                location_options=_get_locations(),
+                device_types=_get_device_types(),
+                auto_complain_no=_next_complain_no(),
+                today_date=datetime.utcnow().date().isoformat(),
+            )
+
+        if not serial_no:
+            flash("Serial No is required.", "danger")
+            return render_template(
+                "new_service_memo.html",
+                technicians=technicians,
+                location_options=_get_locations(),
+                device_types=_get_device_types(),
+                auto_complain_no=_next_complain_no(),
+                today_date=datetime.utcnow().date().isoformat(),
+            )
+
+        if not re.fullmatch(r"[A-Za-z0-9/-]{4,12}", serial_no):
+            flash("Serial No must be 4-12 characters and use letters, digits, '-' or '/'.", "danger")
+            return render_template(
+                "new_service_memo.html",
+                technicians=technicians,
+                location_options=_get_locations(),
+                device_types=_get_device_types(),
+                auto_complain_no=_next_complain_no(),
+                today_date=datetime.utcnow().date().isoformat(),
+            )
+
+        if ip_address:
+            try:
+                ipaddress.ip_address(ip_address)
+            except ValueError:
+                flash("Invalid IP address format.", "danger")
+                return render_template(
+                    "new_service_memo.html",
+                    technicians=technicians,
+                    location_options=LOCATION_OPTIONS,
+                    device_types=_get_device_types(),
+                    auto_complain_no=_next_complain_no(),
+                    today_date=datetime.utcnow().date().isoformat(),
+                )
+
+        if len(model) > 100 or len(serial_no) > 12 or len(ram) > 3 or len(hdd) > 4:
+            flash("One or more fields exceed allowed length.", "danger")
+            return render_template(
+                "new_service_memo.html",
+                technicians=technicians,
+                location_options=_get_locations(),
+                device_types=_get_device_types(),
+                auto_complain_no=_next_complain_no(),
+                today_date=datetime.utcnow().date().isoformat(),
+            )
+        if len(user_details) > 2000:
+            flash("User details cannot exceed 2000 characters.", "danger")
+            return render_template(
+                "new_service_memo.html",
+                technicians=technicians,
+                location_options=_get_locations(),
+                device_types=_get_device_types(),
+                auto_complain_no=_next_complain_no(),
+                today_date=datetime.utcnow().date().isoformat(),
+            )
+
+        if date_in_raw and date_in is None:
+            flash("Date In format is invalid.", "danger")
+            return render_template(
+                "new_service_memo.html",
+                technicians=technicians,
+                location_options=_get_locations(),
+                device_types=_get_device_types(),
+                auto_complain_no=_next_complain_no(),
+                today_date=datetime.utcnow().date().isoformat(),
+            )
+        if date_in and date_in > datetime.utcnow().date():
+            flash("Date In cannot be in the future.", "danger")
+            return render_template(
+                "new_service_memo.html",
+                technicians=technicians,
+                location_options=_get_locations(),
+                device_types=_get_device_types(),
+                auto_complain_no=_next_complain_no(),
+                today_date=datetime.utcnow().date().isoformat(),
+            )
+
+        technician_id = int(technician_id_raw)
+        complain_no = _next_complain_no()
 
         memo = ServiceMemo(
             complain_no=complain_no,
-            location=request.form.get("location", "").strip() or None,
-            ext_no=request.form.get("ext_no", "").strip() or None,
+            location=location,
+            ext_no=ext_no or None,
             user_name=session.get("username"),
             created_by_user_id=session["user_id"],
-            staff_no=request.form.get("staff_no", "").strip() or None,
-            ip_address=request.form.get("ip_address", "").strip() or None,
+            staff_no=staff_no,
+            ip_address=ip_address or None,
             product_name=request.form.get("product_name", "").strip() or None,
-            model=request.form.get("model", "").strip() or None,
-            serial_no=request.form.get("serial_no", "").strip() or None,
-            ram=request.form.get("ram", "").strip() or None,
-            hdd=request.form.get("hdd", "").strip() or None,
-            lniata=request.form.get("lniata", "").strip() or None,
-            fault=("fault" in request.form),
+            model=model or None,
+            serial_no=serial_no or None,
+            ram=ram or None,
+            hdd=hdd or None,
             data_backup=("data_backup" in request.form),
-            date_in=_to_date(request.form.get("date_in", "").strip()),
-            status=request.form.get("status", "").strip() or "pending",
-            user_details=request.form.get("user_details", "").strip() or None,
+            date_in=date_in,
+            status="pending",
+            user_details=user_details or None,
             diagnosed=False,
             date_out=None,
             task_performed=False,
@@ -292,15 +494,19 @@ def create_service_memo():
         if technician_id:
             _refresh_technician_availability(technician_id)
         db.session.commit()
-        if technician_id:
-            technician = User.query.get(technician_id)
-            technician_name = (technician.full_name or technician.username) if technician else "Technician"
-            flash(f"Service memo submitted and assigned to {technician_name}.", "success")
-        else:
-            flash("Service memo submitted. No technician skill match found yet.", "warning")
+        technician = User.query.get(technician_id)
+        technician_name = (technician.full_name or technician.username) if technician else "Technician"
+        flash(f"Service memo submitted and assigned to {technician_name}.", "success")
         return redirect(url_for("complaint_routes.locker_service_memos"))
 
-    return render_template("new_service_memo.html")
+    return render_template(
+        "new_service_memo.html",
+        technicians=_locker_selectable_technicians(),
+        location_options=_get_locations(),
+        device_types=_get_device_types(),
+        auto_complain_no=_next_complain_no(),
+        today_date=datetime.utcnow().date().isoformat(),
+    )
 
 
 # -----------------------------------
@@ -364,17 +570,66 @@ def admin_view_service_memo(service_id):
         return redirect(url_for("auth_routes.login"))
 
     memo = ServiceMemo.query.get_or_404(service_id)
+    existing_items = (
+        HardwareWorkshop.query
+        .filter_by(complaint_no=memo.complain_no)
+        .order_by(HardwareWorkshop.created_at.asc())
+        .all()
+    )
 
     if request.method == "POST":
         admin_action_notes = request.form.get("admin_action_notes", "").strip()
+        item_descriptions = [v.strip() for v in request.form.getlist("item_description") if v is not None]
+        quantity_issued_raw = [v.strip() for v in request.form.getlist("quantity_issued") if v is not None]
+        remarks_list = [v.strip() for v in request.form.getlist("remarks") if v is not None]
+
         if not admin_action_notes:
             flash("Admin action notes are required.", "danger")
-            return render_template("admin_view_service_memo.html", memo=memo)
+            return render_template("admin_view_service_memo.html", memo=memo, items=existing_items)
+        new_items = []
+        for index, item_description in enumerate(item_descriptions):
+            if not item_description:
+                continue
+            qty_raw = quantity_issued_raw[index] if index < len(quantity_issued_raw) else ""
+            remark = remarks_list[index] if index < len(remarks_list) else ""
+            try:
+                quantity_issued = int(qty_raw)
+            except (TypeError, ValueError):
+                flash("Quantity issued must be a valid number.", "danger")
+                return render_template("admin_view_service_memo.html", memo=memo, items=existing_items)
+            if quantity_issued <= 0:
+                flash("Quantity issued must be greater than 0.", "danger")
+                return render_template("admin_view_service_memo.html", memo=memo, items=existing_items)
+            new_items.append({
+                "item_description": item_description,
+                "quantity_issued": quantity_issued,
+                "remarks": remark or None,
+            })
+
+        # Hardware items are optional; allow completion with zero items.
 
         memo.admin_action_notes = admin_action_notes
         memo.task_performed = True
         memo.status = "completed"
         memo.date_out = datetime.utcnow().date()
+
+        admin_user = User.query.get(session["user_id"])
+        for item in new_items:
+            db.session.add(
+                HardwareWorkshop(
+                    complaint_no=memo.complain_no,
+                    item_description=item["item_description"],
+                    qty_issued=item["quantity_issued"],
+                    remarks=item["remarks"],
+                    material_issued_by=session["user_id"],
+                    material_issued_by_designation=admin_user.designation if admin_user else None,
+                    material_issued_by_staff_no=admin_user.staff_no if admin_user else None,
+                    user_name=memo.user_name,
+                    user_staff_no=memo.staff_no,
+                    technician_id=memo.assigned_to,
+                )
+            )
+
         db.session.commit()
 
         if memo.assigned_to:
@@ -384,4 +639,37 @@ def admin_view_service_memo(service_id):
         flash("Service memo marked as completed.", "success")
         return redirect(url_for("main_routes.admin_dashboard"))
 
-    return render_template("admin_view_service_memo.html", memo=memo)
+    return render_template("admin_view_service_memo.html", memo=memo, items=existing_items)
+
+
+@complaint_routes.route("/admin/internal-demand-vouchers/<int:voucher_id>/print")
+def admin_print_internal_demand_voucher(voucher_id):
+    if "user_id" not in session or session.get("role") != "admin":
+        return redirect(url_for("auth_routes.login"))
+
+    voucher = HardwareWorkshop.query.get_or_404(voucher_id)
+    memo = ServiceMemo.query.filter_by(complain_no=voucher.complaint_no).first()
+    items = HardwareWorkshop.query.filter_by(complaint_no=voucher.complaint_no).all()
+    return render_template(
+        "admin_print_internal_demand_voucher.html",
+        complaint_no=voucher.complaint_no,
+        items=items,
+        memo=memo,
+    )
+
+
+@complaint_routes.route("/admin/internal-demand-vouchers/complaint/<complaint_no>/print")
+def admin_print_internal_demand_voucher_for_complaint(complaint_no):
+    if "user_id" not in session or session.get("role") != "admin":
+        return redirect(url_for("auth_routes.login"))
+
+    items = HardwareWorkshop.query.filter_by(complaint_no=complaint_no).all()
+    if not items:
+        abort(404)
+    memo = ServiceMemo.query.filter_by(complain_no=complaint_no).first()
+    return render_template(
+        "admin_print_internal_demand_voucher.html",
+        complaint_no=complaint_no,
+        items=items,
+        memo=memo,
+    )

@@ -56,9 +56,80 @@ def create_app():
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     user_id INT NOT NULL UNIQUE,
                     skills TEXT NOT NULL,
+                    availability_status ENUM('available','busy','offline') NOT NULL DEFAULT 'available',
+                    max_active_jobs INT NOT NULL DEFAULT 1,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     CONSTRAINT fk_technician_profile_user FOREIGN KEY (user_id) REFERENCES users(user_id)
                         ON DELETE CASCADE
+                )
+                """
+            )
+        )
+        db.session.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS device_types (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    name VARCHAR(50) NOT NULL UNIQUE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+                """
+            )
+        )
+        db.session.execute(
+            text(
+                """
+                INSERT IGNORE INTO device_types (name)
+                VALUES
+                    ('laptop'),
+                    ('desktop'),
+                    ('printer'),
+                    ('scanner'),
+                    ('network'),
+                    ('other')
+                """
+            )
+        )
+        db.session.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS locations (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    name VARCHAR(50) NOT NULL UNIQUE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+                """
+            )
+        )
+        db.session.execute(
+            text(
+                """
+                INSERT IGNORE INTO locations (name)
+                VALUES
+                    ('head_office'),
+                    ('station'),
+                    ('workshop'),
+                    ('other')
+                """
+            )
+        )
+        db.session.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS internal_demand_issue_vouchers (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    complaint_id INT NOT NULL UNIQUE,
+                    item_description VARCHAR(255) NOT NULL,
+                    quantity_issued INT NOT NULL,
+                    remarks TEXT,
+                    created_by_admin_id INT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    CONSTRAINT fk_internal_demand_voucher_complaint
+                        FOREIGN KEY (complaint_id) REFERENCES complaints(id)
+                        ON DELETE CASCADE,
+                    CONSTRAINT fk_internal_demand_voucher_admin
+                        FOREIGN KEY (created_by_admin_id) REFERENCES users(user_id)
                 )
                 """
             )

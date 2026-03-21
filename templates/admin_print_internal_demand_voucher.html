@@ -1,0 +1,54 @@
+{% extends "home.html" %}
+{% block content %}
+
+<section class="panel printable-complaint" id="print-voucher">
+    <h2>Internal Demand Issue Voucher</h2>
+    <p class="subtext">Voucher record for complaint {{ complaint_no or "-" }}.</p>
+
+    <div class="detail-grid">
+        <div class="detail-item"><strong>Complaint No</strong>{{ complaint_no or "-" }}</div>
+        <div class="detail-item"><strong>Date</strong>{{ items[0].created_at if items and items[0].created_at else "-" }}</div>
+        <div class="detail-item"><strong>Issued By (Admin)</strong>{{ items[0].material_issuer.full_name or items[0].material_issuer.username if items and items[0].material_issuer else "-" }}</div>
+    </div>
+
+    <h3>Issued Hardware Details</h3>
+    <div class="table-wrap">
+        <table>
+            <tr>
+                <th>S.No</th>
+                <th>Item Description</th>
+                <th>Quantity Issued</th>
+                <th>Remarks</th>
+            </tr>
+            {% for item in items %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ item.item_description or "-" }}</td>
+                <td>{{ item.qty_issued or "-" }}</td>
+                <td>{{ item.remarks or "-" }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4">No hardware items found.</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    {% if memo %}
+    <h3>Related Service Memo</h3>
+    <div class="detail-grid">
+        <div class="detail-item"><strong>Service ID</strong>{{ memo.service_id }}</div>
+        <div class="detail-item"><strong>User Name</strong>{{ memo.user_name or "-" }}</div>
+        <div class="detail-item"><strong>Staff No</strong>{{ memo.staff_no or "-" }}</div>
+        <div class="detail-item"><strong>Device</strong>{{ memo.product_name|title if memo.product_name else "-" }}</div>
+    </div>
+    {% endif %}
+
+    <div class="actions no-print">
+        <a href="{{ url_for('main_routes.admin_dashboard') }}" class="btn ghost"><i class="ri-arrow-left-line"></i>Back</a>
+        <button type="button" class="btn" onclick="window.print()"><i class="ri-printer-line"></i>Print Voucher</button>
+    </div>
+</section>
+
+{% endblock %}

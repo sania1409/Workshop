@@ -1,5 +1,10 @@
 from flask import Blueprint, render_template, redirect, url_for, request, flash, session
+import re
 from werkzeug.security import generate_password_hash, check_password_hash
+try:
+    from passlib.hash import scrypt as passlib_scrypt
+except Exception:  # pragma: no cover - optional dependency
+    passlib_scrypt = None
 from models import User, UserAuth, TechnicianProfile, ComplaintLockerProfile
 from extensions import db
 
@@ -16,6 +21,22 @@ def _build_unique_username(email: str) -> str:
     return candidate
 
 
+def _valid_password(password: str) -> bool:
+    # Minimum 7 characters and at least one number or special character.
+    return bool(password) and len(password) >= 7 and re.search(r"[0-9\W_]", password)
+
+
+def _verify_password(stored_hash: str, password: str) -> bool:
+    if not stored_hash:
+        return False
+    try:
+        return check_password_hash(stored_hash, password)
+    except ValueError:
+        if passlib_scrypt and stored_hash.startswith("$scrypt$"):
+            return passlib_scrypt.verify(password, stored_hash)
+        return False
+
+
 @auth_routes.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -23,7 +44,10 @@ def login():
         password = request.form.get("password", "")
 
         auth = UserAuth.query.filter_by(email=email).first()
-        if auth and check_password_hash(auth.password_hash, password):
+        if auth and _verify_password(auth.password_hash, password):
+            if auth.password_hash.startswith("$scrypt$"):
+                auth.password_hash = generate_password_hash(password)
+                db.session.commit()
             user = auth.user
             session["user_id"] = user.id
             session["username"] = user.username
@@ -97,11 +121,16 @@ def login():
 #     return render_template("register.html")
 @auth_routes.route("/register", methods=["GET", "POST"])
 def register():
+    if "user_id" not in session or session.get("role") != "admin":
+        flash("Only admin can register new users.", "danger")
+        return redirect(url_for("auth_routes.login"))
+
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
         full_name = request.form.get("full_name", "").strip() or None
         contact = request.form.get("contact", "").strip() or None
+        staff_no = request.form.get("staff_no", "").strip().upper() or None
         role = request.form.get("role", "").strip()
         skill = request.form.get("skill", "").strip()
 
@@ -109,6 +138,18 @@ def register():
 
         if not email or not password or role not in allowed_roles:
             flash("Email, password, and valid role are required.", "danger")
+            return render_template("register.html")
+
+        if not _valid_password(password):
+            flash("Password must be at least 7 characters and include at least one number or special character.", "danger")
+            return render_template("register.html")
+
+        if not staff_no:
+            flash("Staff No is required.", "danger")
+            return render_template("register.html")
+
+        if not re.fullmatch(r"[A-Za-z][0-9]{5}", staff_no):
+            flash("Staff No format must be 1 letter followed by 5 digits (example: A12345).", "danger")
             return render_template("register.html")
 
         if role == "technician" and not skill:
@@ -127,7 +168,7 @@ def register():
                 role=role,
                 designation=None,   # <-- explicitly empty
                 department=None,
-                staff_no=None
+                staff_no=staff_no
             )
             db.session.add(user)
             db.session.flush()

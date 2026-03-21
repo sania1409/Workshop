@@ -2,22 +2,25 @@
 
 {% block content %}
 <div class="auth-wrapper">
-    <div class="auth-card">
-
-        <h2>Register</h2>
+    <div class="auth-card panel">
+        <h2 class="auth-title">Create User Access</h2>
+        <p class="subtext">Register technicians and service desk staff for airline operations.</p>
 
         <form method="POST">
             <label>Email</label>
-            <input type="email" name="email" required>
+            <input type="email" name="email" placeholder="Example: user@skybridge.com" required>
 
             <label>Password</label>
-            <input type="password" name="password" required>
+            <input type="password" name="password" minlength="7" pattern="(?=.*[0-9\\W_]).{7,}" title="Minimum 7 characters with at least one number or special character." placeholder="Example: Admin@123" required>
 
             <label>Full Name</label>
-            <input type="text" name="full_name">
+            <input type="text" name="full_name" maxlength="150" placeholder="Example: Ali Raza">
+
+            <label>Staff No</label>
+            <input type="text" name="staff_no" maxlength="6" pattern="[A-Za-z][0-9]{5}" title="Format: 1 letter + 5 digits." placeholder="Example: A12345" required>
 
             <label>Contact</label>
-            <input type="text" name="contact">
+            <input type="text" name="contact" maxlength="50" placeholder="Example: 03001234567">
 
             <label>Role</label>
             <select name="role" id="role" required>
@@ -28,17 +31,16 @@
 
             <div id="skill-field">
                 <label>Skills</label>
-                <input type="text" name="skill">
+                <input type="text" name="skill" maxlength="500" placeholder="Example: laptop, printer, network">
             </div>
 
-            <button type="submit" class="btn-primary">Register</button>
+            <button type="submit" class="btn-primary"><i class="ri-user-add-line"></i>Register</button>
         </form>
 
         <p class="bottom-text">
             Already have an account?
             <a href="{{ url_for('auth_routes.login') }}">Login</a>
         </p>
-
     </div>
 </div>
 {% endblock %}

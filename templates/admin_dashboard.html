@@ -1,64 +1,122 @@
 {% extends "home.html" %}
 
 {% block content %}
-<h2>Admin Dashboard</h2>
-<p>Welcome, {{ session.get('username') }}.</p>
+<section class="panel">
+    <div>
+        <div>
+            <p class="subtext">PIA Control Tower</p>
+            <h2>Admin Dashboard</h2>
+            <p class="subtext">Welcome, {{ session.get('username') }}. Review diagnosed and completed requests.</p>
+        </div>
+        <a class="btn" href="{{ url_for('main_routes.admin_manage_users') }}"><i class="ri-team-line"></i>Manage Users</a>
+    </div>
+    <div class="meta-bar">
+        <span class="chip">Diagnosed: {{ pending_admin_memos|length }}</span>
+        <span class="chip">Completed: {{ completed_admin_memos|length }}</span>
+    </div>
+</section>
 
-<h3>Diagnosed Service Memos (Pending Admin Action)</h3>
-<table border="1" width="100%" cellpadding="8">
-    <tr>
-        <th>Service ID</th>
-        <th>Complain No</th>
-        <th>Device</th>
-        <th>Assigned Technician</th>
-        <th>Status</th>
-        <th>Action</th>
-    </tr>
-    {% for memo in pending_admin_memos %}
-    <tr>
-        <td>{{ memo.service_id }}</td>
-        <td>{{ memo.complain_no }}</td>
-        <td>{{ memo.product_name|title if memo.product_name else "-" }}</td>
-        <td>{{ memo.assigned_user.full_name or memo.assigned_user.username if memo.assigned_user else "Unassigned" }}</td>
-        <td>{{ memo.status or "-" }}</td>
-        <td>
-            <a href="{{ url_for('complaint_routes.admin_view_service_memo', service_id=memo.service_id) }}">Review</a>
-        </td>
-    </tr>
-    {% else %}
-    <tr>
-        <td colspan="6">No diagnosed memos pending admin action.</td>
-    </tr>
-    {% endfor %}
-</table>
+<section class="panel">
+    <h3>Diagnosed Requests</h3>
+    <div class="table-wrap">
+        <table>
+            <tr>
+                <th>Service ID</th>
+                <th>Complain No</th>
+                <th>Device</th>
+                <th>Assigned Technician</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+            {% for memo in pending_admin_memos %}
+            <tr>
+                <td>{{ memo.service_id }}</td>
+                <td>{{ memo.complain_no }}</td>
+                <td>{{ memo.product_name|title if memo.product_name else "-" }}</td>
+                <td>{{ memo.assigned_user.full_name or memo.assigned_user.username if memo.assigned_user else "Unassigned" }}</td>
+                <td><span class="status-{{ memo.status or 'pending' }}">{{ memo.status or "-" }}</span></td>
+                <td><a href="{{ url_for('complaint_routes.admin_view_service_memo', service_id=memo.service_id) }}">Review</a></td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6">No diagnosed memos pending admin action.</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</section>
 
-<br>
+<section class="panel">
+    <h3>Completed Requests</h3>
+    <div class="table-wrap">
+        <table>
+            <tr>
+                <th>Service ID</th>
+                <th>Complain No</th>
+                <th>Device</th>
+                <th>Status</th>
+                <th>Date Out</th>
+                <th>Action</th>
+            </tr>
+            {% for memo in completed_admin_memos %}
+            <tr>
+                <td>{{ memo.service_id }}</td>
+                <td>{{ memo.complain_no }}</td>
+                <td>{{ memo.product_name|title if memo.product_name else "-" }}</td>
+                <td><span class="status-{{ memo.status or 'completed' }}">{{ memo.status or "-" }}</span></td>
+                <td>{{ memo.date_out or "-" }}</td>
+                <td><a href="{{ url_for('complaint_routes.admin_view_service_memo', service_id=memo.service_id) }}">View</a></td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6">No completed service memos yet.</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</section>
 
-<h3>Completed Service Memos</h3>
-<table border="1" width="100%" cellpadding="8">
-    <tr>
-        <th>Service ID</th>
-        <th>Complain No</th>
-        <th>Device</th>
-        <th>Status</th>
-        <th>Date Out</th>
-        <th>Action</th>
-    </tr>
-    {% for memo in completed_admin_memos %}
-    <tr>
-        <td>{{ memo.service_id }}</td>
-        <td>{{ memo.complain_no }}</td>
-        <td>{{ memo.product_name|title if memo.product_name else "-" }}</td>
-        <td>{{ memo.status or "-" }}</td>
-        <td>{{ memo.date_out or "-" }}</td>
-        <td>
-            <a href="{{ url_for('complaint_routes.admin_view_service_memo', service_id=memo.service_id) }}">View</a>
-        </td>
-    </tr>
-    {% else %}
-    <tr>
-        <td colspan="6">No completed service memos yet.</td>
-    </tr>
-    {% endfor %}
-</table>
+<section class="panel">
+    <h3>Internal Demand Issue Voucher</h3>
+    <div class="table-wrap">
+        <table>
+            <tr>
+                <th>S.No</th>
+                <th>Complaint No</th>
+                <th>Item Description</th>
+                <th>Quantity Issued</th>
+                <th>Remarks</th>
+                <th>Action</th>
+            </tr>
+            {% for row in internal_voucher_rows %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ row.complaint_no }}</td>
+                <td>
+                    {% for item in row["items"] %}
+                        {{ item.item_description or "-" }}{% if not loop.last %}<br>{% endif %}
+                    {% endfor %}
+                </td>
+                <td>
+                    {% for item in row["items"] %}
+                        {{ item.qty_issued or "-" }}{% if not loop.last %}<br>{% endif %}
+                    {% endfor %}
+                </td>
+                <td>
+                    {% for item in row["items"] %}
+                        {{ item.remarks or "-" }}{% if not loop.last %}<br>{% endif %}
+                    {% endfor %}
+                </td>
+                <td>
+                    <a href="{{ url_for('complaint_routes.admin_print_internal_demand_voucher_for_complaint', complaint_no=row.complaint_no) }}">Print</a>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6">No internal demand issue vouchers available yet.</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</section>
 {% endblock %}

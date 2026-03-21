@@ -2,25 +2,28 @@
 
 {% block content %}
 <div class="auth-wrapper">
-    <div class="auth-card">
-
-        <h2>Login</h2>
+    <div class="auth-card panel">
+        <div>
+            <p class="subtext">PIA Access Portal</p>
+            <h2 class="auth-title">Crew Login</h2>
+            <p class="subtext">Access Pakistan International Airlines service desk operations panel.</p>
+        </div>
 
         <form method="POST">
-            <label>Email</label>
-            <input type="email" name="email" required>
+            <div>
+                <label>Email</label>
+                <input type="email" name="email" placeholder="Example: user@pia.com.pk" required>
+            </div>
 
-            <label>Password</label>
-            <input type="password" name="password" required>
+            <div>
+                <label>Password</label>
+                <input type="password" name="password" required>
+            </div>
 
-            <button type="submit" class="btn-primary">Login</button>
+            <button type="submit" class="btn-primary"><i class="ri-login-circle-line"></i>Login</button>
         </form>
 
-        <p class="bottom-text">
-            Don't have an account?
-            <a href="{{ url_for('auth_routes.register') }}">Register</a>
-        </p>
-
+        <p class="bottom-text">Need an account? Contact admin to create user access.</p>
     </div>
 </div>
 {% endblock %}

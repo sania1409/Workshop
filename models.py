@@ -172,5 +172,51 @@ class Complaint(db.Model):
 
     locker = db.relationship("ComplaintLockerProfile")
     technician = db.relationship("User", foreign_keys=[technician_id])
+    internal_demand_voucher = db.relationship(
+        "InternalDemandIssueVoucher",
+        back_populates="complaint",
+        uselist=False,
+    )
+
+
+class DeviceType(db.Model):
+    __tablename__ = "device_types"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False, unique=True)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+
+class Location(db.Model):
+    __tablename__ = "locations"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False, unique=True)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+
+class InternalDemandIssueVoucher(db.Model):
+    __tablename__ = "internal_demand_issue_vouchers"
+
+    id = db.Column(db.Integer, primary_key=True)
+    complaint_id = db.Column(
+        db.Integer,
+        db.ForeignKey("complaints.id"),
+        nullable=False,
+        unique=True,
+    )
+    item_description = db.Column(db.String(255), nullable=False)
+    quantity_issued = db.Column(db.Integer, nullable=False)
+    remarks = db.Column(db.Text)
+    created_by_admin_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    updated_at = db.Column(
+        db.DateTime,
+        server_default=db.func.now(),
+        onupdate=db.func.now(),
+    )
+
+    complaint = db.relationship("Complaint", back_populates="internal_demand_voucher")
+    created_by_admin = db.relationship("User")
 
 

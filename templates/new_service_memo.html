@@ -1,69 +1,153 @@
 {% extends "home.html" %}
 {% block content %}
+<section class="panel">
+    <h2>Create Service Memo</h2>
+    <p class="subtext">Record maintenance intake for aircraft office and station equipment support.</p>
 
-<h2>Create Service Memo</h2>
+    <form method="POST">
+        <div class="row">
+            <div class="col">
+                <label>Complain No</label>
+                <input
+                    type="text"
+                    name="complain_no"
+                    maxlength="50"
+                    value="{{ auto_complain_no }}"
+                    readonly
+                >
+            </div>
+            <div class="col">
+                <label>Date In</label>
+                <input type="date" name="date_in" max="{{ today_date }}" value="{{ request.form.get('date_in', today_date) }}">
+            </div>
+        </div>
 
-<form method="POST">
-    <label>Complain No</label><br>
-    <input type="text" name="complain_no" required><br><br>
+        <div class="row">
+            <div class="col">
+                <label>Location</label>
+                <select name="location" required>
+                    <option value="">Select location</option>
+                    {% for loc in location_options %}
+                        <option value="{{ loc }}" {% if request.form.get("location") == loc %}selected{% endif %}>{{ loc.replace("_", " ")|title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col">
+                <label>Ext No</label>
+                <input
+                    type="text"
+                    name="ext_no"
+                    maxlength="20"
+                    pattern="[0-9]{1,20}"
+                    title="Digits only."
+                    value="{{ request.form.get('ext_no', '') }}"
+                >
+            </div>
+            <div class="col">
+                <label>Staff No</label>
+                <input
+                    type="text"
+                    name="staff_no"
+                    maxlength="6"
+                    pattern="[A-Za-z][0-9]{5}"
+                    title="Format must be 1 letter + 5 digits (example: A12345)."
+                    value="{{ request.form.get('staff_no', '') }}"
+                    required
+                >
+            </div>
+        </div>
 
-    <label>Location</label><br>
-    <input type="text" name="location"><br><br>
+        <div class="row">
+            <div class="col">
+                <label>IP Address</label>
+                <input
+                    type="text"
+                    name="ip_address"
+                    maxlength="45"
+                    pattern="^((25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])(\.(25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])){3}|([0-9A-Fa-f]{1,4}:){1,7}[0-9A-Fa-f]{1,4})$"
+                    title="Enter a valid IPv4 or IPv6 address."
+                    placeholder="e.g. 192.168.1.10 or 2001:db8::1"
+                    value="{{ request.form.get('ip_address', '') }}"
+                >
+            </div>
+            <div class="col">
+                <label>Device Type</label>
+                <select name="product_name" required>
+                    <option value="">Select device type</option>
+                    {% for dtype in device_types %}
+                        <option value="{{ dtype }}" {% if request.form.get("product_name") == dtype %}selected{% endif %}>{{ dtype|title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col">
+                <label>Status</label>
+                <input type="text" value="Pending (System Controlled)" readonly>
+            </div>
+        </div>
 
-    <label>Ext No</label><br>
-    <input type="text" name="ext_no"><br><br>
+        <div class="row">
+            <div class="col">
+                <label>Technician</label>
+                <select name="technician_id" required>
+                    <option value="">Select technician</option>
+                    {% for tech in technicians %}
+                        <option value="{{ tech.id }}" {% if request.form.get("technician_id") == (tech.id|string) %}selected{% endif %}>
+                            {{ tech.name }} (Skills: {{ tech.skills }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
 
-    <label>Staff No</label><br>
-    <input type="text" name="staff_no"><br><br>
+        <div class="row">
+            <div class="col">
+                <label>Model</label>
+                <input type="text" name="model" maxlength="100" value="{{ request.form.get('model', '') }}">
+            </div>
+            <div class="col">
+                <label>Serial No</label>
+                <input
+                    type="text"
+                    name="serial_no"
+                    maxlength="12"
+                    minlength="4"
+                    pattern="[A-Za-z0-9/-]{4,12}"
+                    title="Serial No must be 4-12 characters and use letters, digits, '-' or '/'."
+                    value="{{ request.form.get('serial_no', '') }}"
+                    required
+                >
+            </div>
+            <div class="col">
+                <label>RAM</label>
+                <input type="text" name="ram" maxlength="3" value="{{ request.form.get('ram', '') }}">
+            </div>
+            <div class="col">
+                <label>HDD</label>
+                <input type="text" name="hdd" maxlength="4" value="{{ request.form.get('hdd', '') }}">
+            </div>
+        </div>
 
-    <label>IP Address</label><br>
-    <input type="text" name="ip_address"><br><br>
+        <div class="row">
+            <div class="col">
+                <label>User Details</label>
+                <textarea name="user_details" rows="4" maxlength="2000">{{ request.form.get("user_details", "") }}</textarea>
+            </div>
+        </div>
 
-    <label>Device Type</label><br>
-    <select name="product_name" required>
-        <option value="">Select device type</option>
-        <option value="laptop">Laptop</option>
-        <option value="desktop">Desktop</option>
-        <option value="printer">Printer</option>
-        <option value="scanner">Scanner</option>
-        <option value="network">Network</option>
-        <option value="other">Other</option>
-    </select><br><br>
+        <div class="row">
+            <div class="col">
+                <label><input type="checkbox" name="data_backup"> Data Backup</label>
+            </div>
+        </div>
 
-    <label>Model</label><br>
-    <input type="text" name="model"><br><br>
+        <p><strong>Note:</strong> Diagnosed and Date Out will be completed by technician/admin workflow.</p>
 
-    <label>Serial No</label><br>
-    <input type="text" name="serial_no"><br><br>
-
-    <label>RAM</label><br>
-    <input type="text" name="ram"><br><br>
-
-    <label>HDD</label><br>
-    <input type="text" name="hdd"><br><br>
-
-    <label>L/N IATA</label><br>
-    <input type="text" name="lniata"><br><br>
-
-    <label>Date In</label><br>
-    <input type="date" name="date_in"><br><br>
-
-    <label>Status</label><br>
-    <input type="text" name="status" value="pending"><br><br>
-
-    <label>User Details</label><br>
-    <textarea name="user_details" rows="4"></textarea><br><br>
-
-    <label><input type="checkbox" name="fault"> Fault</label><br>
-    <label><input type="checkbox" name="data_backup"> Data Backup</label><br><br>
-
-    <p><strong>Note:</strong> Diagnosed and Date Out will be filled by technician.</p><br>
-
-    <button type="submit" class="btn">Submit Service Memo</button>
-</form>
-
-<br>
-<a href="{{ url_for('complaint_routes.locker_service_memos') }}">Back to Service Memos</a>
-<a href="{{ url_for('main_routes.locker_dashboard') }}" class="btn">Locker Dashboard</a>
+        <div class="actions">
+            <button type="submit" class="btn"><i class="ri-send-plane-2-line"></i>Submit Service Memo</button>
+            <a href="{{ url_for('complaint_routes.locker_service_memos') }}" class="btn ghost"><i class="ri-arrow-left-line"></i>Back to Service Memos</a>
+            <a href="{{ url_for('main_routes.locker_dashboard') }}" class="btn ghost"><i class="ri-dashboard-line"></i>Service Desk Dashboard</a>
+        </div>
+    </form>
+</section>
 
 {% endblock %}

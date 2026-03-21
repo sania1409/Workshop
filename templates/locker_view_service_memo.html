@@ -1,9 +1,9 @@
 {% extends "home.html" %}
 {% block content %}
 
-<section class="panel">
+<section class="panel printable-complaint" id="print">
     <h2>Service Memo #{{ memo.service_id }}</h2>
-    <p class="subtext">Review intake details and submit technical diagnosis.</p>
+    <p class="subtext">Review complete memo details and print after completion.</p>
 
     <div class="detail-grid">
         <div class="detail-item"><strong>Complain No</strong>{{ memo.complain_no }}</div>
@@ -18,22 +18,25 @@
         <div class="detail-item"><strong>RAM</strong>{{ memo.ram or "-" }}</div>
         <div class="detail-item"><strong>HDD</strong>{{ memo.hdd or "-" }}</div>
         <div class="detail-item"><strong>Date In</strong>{{ memo.date_in or "-" }}</div>
+        <div class="detail-item"><strong>Date Out</strong>{{ memo.date_out or "-" }}</div>
         <div class="detail-item"><strong>Status</strong><span class="status-{{ memo.status or 'pending' }}">{{ memo.status or "-" }}</span></div>
+        <div class="detail-item"><strong>Assigned Technician</strong>{{ memo.assigned_user.full_name or memo.assigned_user.username if memo.assigned_user else "Unassigned" }}</div>
         <div class="detail-item"><strong>Data Backup</strong>{{ "Yes" if memo.data_backup else "No" }}</div>
     </div>
 
     <hr>
     <p><strong>User Details:</strong> {{ memo.user_details or "-" }}</p>
+    <p><strong>Diagnosis Notes:</strong> {{ memo.diagnosis_notes or "-" }}</p>
+    <p><strong>Admin Action Notes:</strong> {{ memo.admin_action_notes or "-" }}</p>
 
-    <h3>Diagnosis</h3>
-    <form method="POST">
-        <label>Diagnosis Notes</label>
-        <textarea name="diagnosis_notes" rows="5" required>{{ memo.diagnosis_notes or "" }}</textarea>
-        <div class="actions">
-            <button type="submit" class="btn">Update as Diagnosed</button>
-            <a class="btn ghost" href="{{ url_for('main_routes.technician_dashboard') }}">Back to Technician Dashboard</a>
-        </div>
-    </form>
+    <div class="actions no-print">
+        <a href="{{ url_for('complaint_routes.locker_service_memos') }}" class="btn ghost"><i class="ri-arrow-left-line"></i>Back</a>
+        {% if memo.task_performed %}
+        <button type="button" class="btn" onclick="window.print()"><i class="ri-printer-line"></i>Print Memo</button>
+        {% else %}
+        <span class="chip">Print available after completion</span>
+        {% endif %}
+    </div>
 </section>
 
 {% endblock %}

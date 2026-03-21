@@ -1,7 +1,10 @@
 {% extends "home.html" %}
 {% block content %}
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-<script src="{{ url_for('static', filename='script.js') }}"></script>
-<h2>Dashboard</h2>
-<p>Welcome to Workshop Management System!</p>
+<section class="panel">
+    <h2>Operations Dashboard</h2>
+    <p class="subtext">Welcome to Pakistan International Airlines technical operations workspace.</p>
+    <div class="actions">
+        <a class="btn" href="{{ url_for('auth_routes.logout') }}"><i class="ri-logout-box-r-line"></i>Logout</a>
+    </div>
+</section>
 {% endblock %}

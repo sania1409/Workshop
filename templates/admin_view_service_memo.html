@@ -1,34 +1,108 @@
 {% extends "home.html" %}
 {% block content %}
 
-<h2>Admin Review: Service Memo #{{ memo.service_id }}</h2>
+<section class="panel">
+    <h2>Admin Review: Service Memo #{{ memo.service_id }}</h2>
+    <p class="subtext">Finalize operational closure after technician diagnosis.</p>
 
-<p><strong>Complain No:</strong> {{ memo.complain_no }}</p>
-<p><strong>User Name:</strong> {{ memo.user_name or "-" }}</p>
-<p><strong>Staff No:</strong> {{ memo.staff_no or "-" }}</p>
-<p><strong>Location:</strong> {{ memo.location or "-" }}</p>
-<p><strong>Device Type:</strong> {{ memo.product_name|title if memo.product_name else "-" }}</p>
-<p><strong>Model:</strong> {{ memo.model or "-" }}</p>
-<p><strong>Serial No:</strong> {{ memo.serial_no or "-" }}</p>
-<p><strong>User Details:</strong> {{ memo.user_details or "-" }}</p>
-<p><strong>Diagnosed:</strong> {{ "Yes" if memo.diagnosed else "No" }}</p>
-<p><strong>Diagnosis Notes:</strong> {{ memo.diagnosis_notes or "-" }}</p>
-<p><strong>Current Status:</strong> {{ memo.status or "-" }}</p>
+    <div class="detail-grid">
+        <div class="detail-item"><strong>Complain No</strong>{{ memo.complain_no }}</div>
+        <div class="detail-item"><strong>User Name</strong>{{ memo.user_name or "-" }}</div>
+        <div class="detail-item"><strong>Staff No</strong>{{ memo.staff_no or "-" }}</div>
+        <div class="detail-item"><strong>Location</strong>{{ memo.location or "-" }}</div>
+        <div class="detail-item"><strong>Device Type</strong>{{ memo.product_name|title if memo.product_name else "-" }}</div>
+        <div class="detail-item"><strong>Model</strong>{{ memo.model or "-" }}</div>
+        <div class="detail-item"><strong>Serial No</strong>{{ memo.serial_no or "-" }}</div>
+        <div class="detail-item"><strong>Diagnosed</strong>{{ "Yes" if memo.diagnosed else "No" }}</div>
+        <div class="detail-item"><strong>Current Status</strong><span class="status-{{ memo.status or 'pending' }}">{{ memo.status or "-" }}</span></div>
+    </div>
 
-<hr>
+    <hr>
+    <p><strong>User Details:</strong> {{ memo.user_details or "-" }}</p>
+    <p><strong>Diagnosis Notes:</strong> {{ memo.diagnosis_notes or "-" }}</p>
 
-<h3>Admin Action</h3>
-<form method="POST">
-    <label>Action Notes (Work Done)</label><br>
-    <textarea name="admin_action_notes" rows="5" required>{{ memo.admin_action_notes or "" }}</textarea><br><br>
-    {% if not memo.task_performed %}
-    <button type="submit" class="btn">Mark Completed</button>
-    {% else %}
-    <p><strong>This memo is already completed.</strong></p>
-    {% endif %}
-</form>
+    <h3>Admin Action</h3>
+    <form method="POST">
+        <label>Action Notes (Work Done)</label>
+        <textarea name="admin_action_notes" rows="5" required>{{ memo.admin_action_notes or "" }}</textarea>
 
-<br>
-<a href="{{ url_for('main_routes.admin_dashboard') }}">Back to Admin Dashboard</a>
+        {% if items and items|length > 0 %}
+        <h4>Already Issued Items</h4>
+        <div class="table-wrap">
+            <table>
+                <tr>
+                    <th>S.No</th>
+                    <th>Item Description</th>
+                    <th>Quantity</th>
+                    <th>Remarks</th>
+                </tr>
+                {% for item in items %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ item.item_description or "-" }}</td>
+                    <td>{{ item.qty_issued or "-" }}</td>
+                    <td>{{ item.remarks or "-" }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+        {% endif %}
+
+        <h4>Add Hardware Issued</h4>
+        <div id="hardware-rows" style="display:grid;gap:10px;">
+            <div class="row" style="gap:10px;">
+                <div class="col">
+                    <label>Item Description</label>
+                    <input type="text" name="item_description" placeholder="Example: RAM 8GB DDR4">
+                </div>
+                <div class="col">
+                    <label>Quantity Issued</label>
+                    <input type="number" name="quantity_issued" min="1" placeholder="1">
+                </div>
+                <div class="col">
+                    <label>Remarks</label>
+                    <input type="text" name="remarks" placeholder="Any additional note">
+                </div>
+            </div>
+        </div>
+        <div class="actions no-print">
+            <button type="button" class="btn ghost" onclick="addHardwareRow()">Add another item</button>
+        </div>
+
+        {% if not memo.task_performed %}
+        <div class="actions">
+            <button type="submit" class="btn">Mark Completed</button>
+            <a class="btn ghost" href="{{ url_for('main_routes.admin_dashboard') }}">Back to Admin Dashboard</a>
+        </div>
+        {% else %}
+        <p><strong>This memo is already completed.</strong></p>
+        {% endif %}
+    </form>
+</section>
+
+<script>
+function addHardwareRow() {
+    const container = document.getElementById("hardware-rows");
+    if (!container) return;
+    const row = document.createElement("div");
+    row.className = "row";
+    row.style.gap = "10px";
+    row.innerHTML = `
+        <div class="col">
+            <label>Item Description</label>
+            <input type="text" name="item_description" placeholder="Example: RAM 8GB DDR4">
+        </div>
+        <div class="col">
+            <label>Quantity Issued</label>
+            <input type="number" name="quantity_issued" min="1" placeholder="1">
+        </div>
+        <div class="col">
+            <label>Remarks</label>
+            <input type="text" name="remarks" placeholder="Any additional note">
+        </div>
+    `;
+    container.appendChild(row);
+}
+</script>
 
 {% endblock %}

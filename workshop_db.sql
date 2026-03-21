@@ -120,3 +120,36 @@ CREATE TABLE hardware_workshop (
     FOREIGN KEY (material_issued_by) REFERENCES users(id),
     FOREIGN KEY (technician_id) REFERENCES users(id)
 );
+
+-- ----------------------
+-- 7. Internal Demand Issue Voucher Table
+-- ----------------------
+DROP TABLE IF EXISTS internal_demand_issue_vouchers;
+CREATE TABLE internal_demand_issue_vouchers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    complaint_id INT NOT NULL UNIQUE,
+    item_description VARCHAR(255) NOT NULL,
+    quantity_issued INT NOT NULL,
+    remarks TEXT,
+    created_by_admin_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (complaint_id) REFERENCES complaints(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by_admin_id) REFERENCES users(id)
+);
+
+-- ----------------------
+-- 8. Locations Table
+-- ----------------------
+DROP TABLE IF EXISTS locations;
+CREATE TABLE locations (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO locations (name) VALUES
+    ('head_office'),
+    ('station'),
+    ('workshop'),
+    ('other');
